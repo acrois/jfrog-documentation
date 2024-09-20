@@ -14,8 +14,13 @@ In this page, we refer to the source self-hosted instance as the source instance
 
 ### Noteworthy Details
 
-   * **Artifactory Version Support:** The Artifactory Transfer solution is supported for any version of Artifactory 7.x and Artifactory version 6.23.21 and above. If your current Artifactory version is not of compatible version, please consider upgrading the Artifactory instance. 
-   * **Supported OS Platforms:** The transfer tool can help transfer the files and configuration from operating systems of all types, including Windows and Container environments.
+* **Artifactory Version Support:** The Artifactory Transfer solution is supported for any version of Artifactory 7.x and Artifactory version 6.23.21 and above. If your current Artifactory version is not of compatible version, please consider upgrading the Artifactory instance. 
+* **Supported OS Platforms:** The transfer tool can help transfer the files and configuration from operating systems of all types, including Windows and Container environments.
+* **Persistence to Resume Transfer:** If running within a container, ensure that the location found in the `$JFROG_CLI_HOME_DIR` environmental variable is persisted. By default it is set to `~/.jfrog/`.
+    * If your container is deleted, and you do not have a persistent volume, then all data transfer progress will be lost and you will be forced to start the data transfer from the beginning.
+    * There is absolutely no risk of data loss in Artifactory. If you do not persist the transfer directory and have to restart the data transfer, it is okay. In this case, your trash can *may* grow with as much data as you transferred before the loss of the CLI data.
+    * Consider running the CLI with shared volume mounts from the source Artifactory and a persistent volume to the CLI directory in a completely separate container.
+    * If running multiple CLI instances, give each instance an isolated CLI directory.
 
 ### Limitations
 
@@ -489,3 +494,9 @@ Yes. The source Artifactory instance stores a checksum for every file it hosts. 
 **Can I stop the jf rt transfer-files command and then start it again? Would that cause any issues?**
 
 You can stop the command at any time by hitting CTRL+C and then run it again. JFrog CLI stores the state of the transfer process in the "transfer" directory under the JFrog CLI home directory. This directory is usually located at `~/.jfrog/transfer`. Subsequent executions of the command use the data stored in that directory to try and avoid transferring files that have already been transferred in previous command executions.
+
+**Why is the trash can filling up?**
+
+This can happen if your CLI transfer directory is not persistent, normally happening within an ephemeral-by-default environment like Docker and Kubernetes containers.
+
+Fear not! Even though the records are in the trash can, the binary is being referenced by the repository on the destination. The binary has two references, trash can and destination repository. When the trash can reference is cleaned up, your artifact will still have a reference to the binary, thus the data will not be deleted.
